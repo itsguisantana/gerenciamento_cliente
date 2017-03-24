@@ -5,21 +5,23 @@
  */
 package controle;
 
-import dao.ClienteDAO;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.io.PrintWriter;
+import java.util.List;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import modelo.Cliente;
-import static util.Constantes.*;
+import modelo.ClienteDAO;
 
 /**
  *
- * @author 11151105952
+ * @author 11151104481
  */
+@WebServlet(name = "ControleCliente", urlPatterns = {"/controle"})
 public class ControleCliente extends HttpServlet {
 
     /**
@@ -33,44 +35,113 @@ public class ControleCliente extends HttpServlet {
      */
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        RequestDispatcher rd;
-        ClienteDAO cdao = new ClienteDAO();
+        response.setContentType("text/html;charset=UTF-8");
 
-        try {
-            String acao = request.getParameter(PARAMETER_ACAO);
-
-            if (acao.equals(ACAO_CADASTRAR)) {
-
-                String nome = request.getParameter(PARAMETER_NOME);
-                String cpf = request.getParameter(PARAMETER_CPF);
-                String tel = request.getParameter(PARAMETER_TEL);
-                String ende = request.getParameter(PARAMETER_ENDE);
-
-                Cliente c = new Cliente(nome, cpf, tel, ende);
-
-                cdao.cadastrar(c);
-
-                rd = request.getRequestDispatcher(JSP_SUCESSO);
-                request.setAttribute(ATRI_CLIENTE, c);
+        
+        String acao = request.getParameter("acao");
+        
+        if(acao.equals("Cadastrar")){
+            
+            String nome = request.getParameter("txtNome");
+        String telefone = request.getParameter("txtTelefone");
+        String endereco = request.getParameter("txtEndereco");
+        
+        //instanciar o objeto e setar os atributos
+        
+        Cliente cliente = new Cliente();
+        cliente.setNome(nome);
+        cliente.setTelefone(telefone);
+        cliente.setEndereco(endereco);
+        
+        //criar o obj DAO e acionar os metodos necessarios
+        
+        ClienteDAO dao = new ClienteDAO();
+        dao.cadastrar(cliente);
+        
+        response.getWriter().println("Cliente Cadastrado: ");
+        
+        } else
+            if(acao.equals("Listar")){
+                
+                ClienteDAO dao = new ClienteDAO();
+                //o metodo listar vai devolver uma lista de clientes
+                //chamada listaCliente
+                List<Cliente> listaCliente =  dao.listar();
+               
+                //adicionar a lista na requisição
+                //passei a listaCliente como requisição chamando ela de lista
+                request.setAttribute("lista", listaCliente);
+                
+                //enviar o request com a lista para a jsp
+                //esse obj é uma interface que precisa do construtor
+                //getRequestDispatcher passando o atributo da jsp
+                RequestDispatcher rd = request.getRequestDispatcher("/lista.jsp");
+                //quem vai acionar toda essa ação é o forward
                 rd.forward(request, response);
+                
+            } else
+                if(acao.equals("Excluir")){
+                    
+                   int id = Integer.parseInt(request.getParameter("id"));
+                   
+                   Cliente cliente = new Cliente();
+                   cliente.setId(id);
+                   
+                   ClienteDAO dao = new ClienteDAO();
+                   
+                   dao.Excluir(cliente);
+                   
+                    
+                } else
+                        if(acao.equals("Consultar")) {
+                            
+                            int id = Integer.parseInt(request.getParameter("id"));
+                            Cliente cliente = new Cliente();
+                            cliente.setId(id);
+                                                        
+                            ClienteDAO dao = new ClienteDAO();
+                            
+                            List<Cliente> consultarCliente =  dao.Consultar(cliente);
+                            
+                             request.setAttribute("consulta", consultarCliente);
+                             
+                            RequestDispatcher rd = request.getRequestDispatcher("/alterarCliente.jsp");
+                              //quem vai acionar toda essa ação é o forward
+                            rd.forward(request, response);
 
-            } else if (acao.equals(ACAO_LISTAR)) {
-
-                ArrayList<Cliente> lc = cdao.listar();
-                rd = request.getRequestDispatcher(JSP_LISTA);
-                request.setAttribute(ATRI_LISTA, lc);
-                rd.forward(request, response);
-
-            } else {
-                throw new IllegalAccessException();
-            }
-        } catch (Exception e) {
-            request.setAttribute(ATRI_ERRO, e);
-            rd = request.getRequestDispatcher(JSP_ERRO);
-            rd.forward(request, response);
-        }
-
-    }
+                        
+                        } else
+                            if(acao.equals("Alterar")) {
+                               
+                            int id = Integer.parseInt(request.getParameter("txtId"));
+                            String nome = request.getParameter("txtNome");
+                            String telefone = request.getParameter("txtTelefone");
+                            String endereco = request.getParameter("txtEndereco");
+                            
+                            Cliente cliente = new Cliente();
+                            cliente.setId(id);
+                            cliente.setNome(nome);
+                            cliente.setTelefone(telefone);
+                            cliente.setEndereco(endereco);
+                            
+                            ClienteDAO dao = new ClienteDAO();
+                            
+                            dao.Alterar(cliente);
+                            
+                              PrintWriter out = response.getWriter();
+      
+                            
+                            out.println("Cliente ALTERADO ");
+                            
+                            }
+        
+        
+        //recuperar os parametros
+        
+        
+        
+                    
+}
 
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
     /**
@@ -84,7 +155,7 @@ public class ControleCliente extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        response.getWriter().print("YOU SHALL NOT PASS!");
+        processRequest(request, response);
     }
 
     /**
@@ -98,7 +169,10 @@ public class ControleCliente extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+       
         processRequest(request, response);
+        
+        
     }
 
     /**
